@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+        <property name="ignoreResourceNotFound" value="true"/>
+        <property name="locations">
+            <list>
+                <value>classpath:jdbc.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- write dataSource -->
+    <bean id="write" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <constructor-arg name="configuration">
+            <bean class="com.zaxxer.hikari.HikariConfig">
+                <property name="poolName" value="springHikariCP"/>
+                <property name="connectionTestQuery" value="SELECT 1"/>
+                <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="jdbcUrl" value="${write.jdbc.url}"/>
+                <property name="username" value="${write.jdbc.user}"/>
+                <property name="password" value="${write.jdbc.pass}"/>
+                <property name="dataSourceProperties">
+                    <props>
+                        <prop key="cachePrepStmts">true</prop>
+                        <prop key="prepStmtCacheSize">250</prop>
+                        <prop key="prepStmtCacheSqlLimit">2048</prop>
+                        <prop key="useServerPrepStmts">true</prop>
+                        <prop key="useLocalSessionState">true</prop>
+                        <prop key="useLocalTransactionState">true</prop>
+                        <prop key="rewriteBatchedStatements">true</prop>
+                        <prop key="cacheResultSetMetadata">true</prop>
+                        <prop key="cacheServerConfiguration">true</prop>
+                        <prop key="elideSetAutoCommits">true</prop>
+                        <prop key="maintainTimeStats">false</prop>
+                    </props>
+                </property>
+            </bean>
+        </constructor-arg>
+    </bean>
+    <!-- read dataSource -->
+    <bean id="read" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <constructor-arg name="configuration">
+            <bean class="com.zaxxer.hikari.HikariConfig">
+                <property name="poolName" value="springHikariCP"/>
+                <property name="connectionTestQuery" value="SELECT 1"/>
+                <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="jdbcUrl" value="${read.jdbc.url}"/>
+                <property name="username" value="${read.jdbc.user}"/>
+                <property name="password" value="${read.jdbc.pass}"/>
+                <property name="dataSourceProperties">
+                    <props>
+                        <prop key="cachePrepStmts">true</prop>
+                        <prop key="prepStmtCacheSize">250</prop>
+                        <prop key="prepStmtCacheSqlLimit">2048</prop>
+                        <prop key="useServerPrepStmts">true</prop>
+                        <prop key="useLocalSessionState">true</prop>
+                        <prop key="useLocalTransactionState">true</prop>
+                        <prop key="rewriteBatchedStatements">true</prop>
+                        <prop key="cacheResultSetMetadata">true</prop>
+                        <prop key="cacheServerConfiguration">true</prop>
+                        <prop key="elideSetAutoCommits">true</prop>
+                        <prop key="maintainTimeStats">false</prop>
+                    </props>
+                </property>
+            </bean>
+        </constructor-arg>
+    </bean>
+    <bean id="mockSingleReadWriteRoutingDataSource" class="io.wkz.mybatis.datasource.SingleReadWriteRoutingDataSource">
+        <property name="read" ref="read"/>
+        <property name="write" ref="write"/>
+    </bean>
+    <bean id="transactionManager"
+          class="io.wkz.mybatis.transaction.ReadWriteTransactionManager">
+        <property name="dataSource" ref="mockSingleReadWriteRoutingDataSource"/>
+    </bean>
+    <tx:annotation-driven order="1"/>
+
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="configLocation" value="classpath:/sqlmap-test-config.xml"/>
+        <property name="dataSource" ref="mockSingleReadWriteRoutingDataSource"/>
+    </bean>
+
+    <!--MapperScannerConfigurer配置-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--basePackage指定要扫描的包，在此包之下的映射器都会被
+        搜索到。可指定多个包，包与包之间用逗号或分号分隔-->
+        <property name="basePackage" value="io.wkz.mybatis.dao"/>
+    </bean>
+
+</beans>
