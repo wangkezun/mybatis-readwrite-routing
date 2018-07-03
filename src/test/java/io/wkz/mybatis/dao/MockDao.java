@@ -11,6 +11,6 @@ import org.apache.ibatis.annotations.Select;
 public interface MockDao {
 	@Select("select * from mock_table where id= #{id}")
 	MockDto getById(int id);
-	@Insert("insert into mock_table value(#{name})")
+	@Insert("insert into mock_table (name) value(#{name})")
 	void addOne(MockDto dto);
 }
